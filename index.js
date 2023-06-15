@@ -98,7 +98,7 @@ async function run() {
         })
 
 
-        app.get('/users', verifyJWT, verifyAdmin, async(req, res) => {
+        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.send(result);
         })
@@ -137,10 +137,10 @@ async function run() {
             res.send(result);
         })
 
+
         // check Admin
         app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
-            console.log(email)
 
             if (req.decoded.email !== email) {
                 res.send({ admin: false })
@@ -171,10 +171,92 @@ async function run() {
 
 
         // class related api
+
+        app.post('/classes', async (req, res) => {
+            const query = req.body;
+            const result = await classesCollection.insertOne(query);
+            res.send(result);
+        })
+
         app.get('/classes', async (req, res) => {
             const result = await classesCollection.find().toArray();
             res.send(result);
         })
+
+
+        // instructor classes
+        app.get('/myClasses', verifyJWT, verifyInstructor, async (req, res) => {
+            const email = req.query.email;
+            if (!email) {
+                res.send([]);
+                return;
+            }
+
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'forbidden access' })
+            }
+
+            const query = {
+                instructorEmail: email
+            };
+            const result = await classesCollection.find(query).toArray();
+            res.send(result);
+        });
+
+        // admin -->  approve class
+        app.patch('/classes/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    status: 'approved'
+                },
+            };
+
+            const result = await classesCollection.updateOne(filter, updateDoc);
+            res.send(result);
+
+        })
+
+
+        // admin --> deny class
+        app.patch('/classes/deny/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    status: 'denied'
+                },
+            };
+
+            const result = await classesCollection.updateOne(filter, updateDoc);
+            res.send(result);
+
+        })
+
+
+        // admin --> send feedback
+        app.patch('/classes/feedback/:id', async (req, res) => {
+            const id = req.params.id;
+            const { feedback } = req.body;
+
+            try {
+                const filter = { _id: new ObjectId(id) };
+                const updateDoc = {
+                    $set: {
+                        feedback: feedback,
+                    },
+                };
+
+                const result = await classesCollection.updateOne(filter, updateDoc);
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send("Internal Server Error");
+            }
+        });
 
 
         // Send a ping to confirm a successful connection
