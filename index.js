@@ -249,6 +249,28 @@ async function run() {
             res.send(result);
         })
 
+        // get all my enrolled class list
+        app.get('/myEnrolledClasses', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            console.log(email);
+
+            if (!email) {
+                res.send([]);
+                return;
+            }
+
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'forbidden access' })
+            }
+
+            const query = {
+                email: email
+            };
+            const result = await paymentsCollection.find(query).toArray();
+            res.send(result);
+        });
+
 
         // payment related api
         app.post("/create-payment-intent", verifyJWT, async (req, res) => {
@@ -278,7 +300,7 @@ async function run() {
             res.send({ insertResult, deleteResult });
         })
 
-        
+
 
         // admin -->  approve class
         app.patch('/classes/approve/:id', async (req, res) => {
