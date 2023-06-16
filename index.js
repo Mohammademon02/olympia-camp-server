@@ -4,6 +4,7 @@ const app = express();
 require('dotenv').config()
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -52,6 +53,7 @@ async function run() {
         const classesCollection = client.db('olympiaDB').collection('sportsClasses');
         const usersCollection = client.db('olympiaDB').collection('users');
         const selectedClassesCollection = client.db('olympiaDB').collection('selectedClasses');
+        const paymentsCollection = client.db('olympiaDB').collection('payments');
 
         // jwt sign
         app.post('/jwt', (req, res) => {
@@ -247,6 +249,36 @@ async function run() {
             res.send(result);
         })
 
+
+        // payment related api
+        app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 100;
+            if (!price) return;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ["card"],
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            const insertResult = await paymentsCollection.insertOne(payment);
+
+            const query = { _id: new ObjectId(payment.id) };
+
+            const deleteResult = await selectedClassesCollection.deleteOne(query)
+
+            res.send({ insertResult, deleteResult });
+        })
+
+        
 
         // admin -->  approve class
         app.patch('/classes/approve/:id', async (req, res) => {
