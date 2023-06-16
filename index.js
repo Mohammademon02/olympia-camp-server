@@ -51,6 +51,7 @@ async function run() {
 
         const classesCollection = client.db('olympiaDB').collection('sportsClasses');
         const usersCollection = client.db('olympiaDB').collection('users');
+        const selectedClassesCollection = client.db('olympiaDB').collection('selectedClasses');
 
         // jwt sign
         app.post('/jwt', (req, res) => {
@@ -102,7 +103,6 @@ async function run() {
             const result = await usersCollection.find().toArray();
             res.send(result);
         })
-
 
 
 
@@ -178,10 +178,17 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/classesList', async (req, res) => {
+            const result = await classesCollection.find({ status: "approved" }).toArray();
+            res.send(result);
+        })
+
+
         app.get('/classes', async (req, res) => {
             const result = await classesCollection.find().toArray();
             res.send(result);
         })
+
 
 
         // instructor classes
@@ -203,6 +210,43 @@ async function run() {
             const result = await classesCollection.find(query).toArray();
             res.send(result);
         });
+
+
+        // student select class for enroll---> related api
+
+        app.post('/selectedClasses', async (req, res) => {
+            const query = req.body;
+            const result = await selectedClassesCollection.insertOne(query);
+            res.send(result);
+        })
+
+        // get all the selected classes
+        app.get('/selectedClasses', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+
+            if (!email) {
+                res.send([]);
+                return;
+            }
+
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'forbidden access' })
+            }
+
+            const query = { email: email };
+            const result = await selectedClassesCollection.find(query).toArray();
+            res.send(result);
+        });
+
+        // delete selected class
+        app.delete('/selectedClasses/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await selectedClassesCollection.deleteOne(query);
+            res.send(result);
+        })
+
 
         // admin -->  approve class
         app.patch('/classes/approve/:id', async (req, res) => {
