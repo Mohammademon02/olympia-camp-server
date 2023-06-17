@@ -201,7 +201,7 @@ async function run() {
 
 
 
-        // instructor classes
+        // get instructor classes
         app.get('/myClasses', verifyJWT, verifyInstructor, async (req, res) => {
             const email = req.query.email;
             if (!email) {
