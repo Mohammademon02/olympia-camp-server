@@ -107,6 +107,12 @@ async function run() {
         })
 
 
+        // get all instructors
+        app.get('/instructors', async (req, res) => {
+            const result = await usersCollection.find({ role: "instructor" }).toArray();
+            res.send(result);
+        });
+
 
 
 
@@ -170,6 +176,8 @@ async function run() {
 
 
 
+        
+
 
 
         // class related api
@@ -212,6 +220,24 @@ async function run() {
             const result = await classesCollection.find(query).toArray();
             res.send(result);
         });
+
+        app.put('/classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const options = { upsert: true };
+            const updatedClass = req.body;
+
+            const classCard = {
+                $set: {
+                    className: updatedClass.className,
+                    classImage: updatedClass.classImage,
+                    availableSeats: updatedClass.availableSeats,
+                    price: updatedClass.price
+                }
+            }
+            const result = await classesCollection.updateOne(filter, classCard, options);
+            res.send(result);
+        })
 
 
         // student select class for enroll---> related api
@@ -299,6 +325,29 @@ async function run() {
 
             res.send({ insertResult, deleteResult });
         })
+
+        
+        // get my all payment history
+        app.get('/myPaymentHistories', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            console.log(email);
+
+            if (!email) {
+                res.send([]);
+                return;
+            }
+
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'forbidden access' })
+            }
+
+            const query = {
+                email: email
+            };
+            const result = await paymentsCollection.find(query).toArray();
+            res.send(result);
+        });
 
 
 
