@@ -173,10 +173,6 @@ async function run() {
 
 
 
-        
-
-
-
         // class related api
 
         app.post('/classes', async (req, res) => {
@@ -195,7 +191,6 @@ async function run() {
             const result = await classesCollection.find().toArray();
             res.send(result);
         })
-
 
 
         // get instructor classes
